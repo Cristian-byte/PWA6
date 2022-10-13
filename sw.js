@@ -56,3 +56,10 @@ self.addEventListener('fetch', event => {
         });
 
     e.waitUntil(cacheProm);
+
+
+self.addEventListener('fetch', e =>{
+
+    //1- Cache Only
+    e.respondWith( caches.match( e.request ) );
+})
