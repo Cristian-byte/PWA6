@@ -172,7 +172,8 @@ self.addEventListener('fetch', e => {
 });*/
 
 //const CACHE_STATIC_NAME = 'static-v1';
-const CACHE_STATIC_NAME = 'static-v2';
+//const CACHE_STATIC_NAME = 'static-v2';
+const CACHE_STATIC_NAME = 'static-v4';
 const CACHE_DYNAMIC_NAME = 'dynamic-v1';
 const CACHE_INMUTABLE_NAME = 'inmutable-v1';
 const CACHE_DYNAMIC_LIMIT = 50;
@@ -218,6 +219,26 @@ self.addEventListener('install', e => {
 
 });
 
+self.addEventListener('activate', e => {
+
+
+    const respuesta = caches.keys().then(keys => {
+
+        keys.forEach(key => {
+
+            // diferente a la version actual
+            if (key !== CACHE_STATIC_NAME && key.includes('static')) {
+                return caches.delete(key);
+            }
+
+        });
+
+    });
+
+    e.waitUntil(respuesta);
+
+});
+
 self.addEventListener('fetch', e => {
 
     //2- Cache with Network Fallback
@@ -245,6 +266,7 @@ self.addEventListener('fetch', e => {
                         return caches.match('/pages/offline.html');
                     }
         });
-
     });
+    
+    e.respondWith(respuesta);
 });
