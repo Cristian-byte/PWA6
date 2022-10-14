@@ -1,4 +1,4 @@
-//const CACHE_NAME = 'cache-1';
+/* //const CACHE_NAME = 'cache-1';
 //const CACHE_STATIC_NAME = 'static-v1';
 const CACHE_STATIC_NAME = 'static-v2';
 const CACHE_DYNAMIC_NAME = 'dynamic-v1';
@@ -54,7 +54,7 @@ self.addEventListener('install', e => {
     /*const resp = fetch(event.request)
         .catch(() => offlineResp);
 
-    event.respondWith(resp);*/
+    event.respondWith(resp);
 
 });
 
@@ -82,11 +82,11 @@ self.addEventListener('install', e => {
 
 self.addEventListener('fetch', e => {
 
-    /*//1- Cache Only
+    //1- Cache Only
         //e.respondWith( caches.match( e.request ) );
-    //})*/ 
+    //})
 
-    /*// 2- Cache with Network Fallback
+    // 2- Cache with Network Fallback
     //const respuesta = caches.match(e.request)
     //  .then(res => {
     //
@@ -109,9 +109,9 @@ self.addEventListener('fetch', e => {
     //        });
     //        
     //    });
-    //});*/
+    //});
 
-    /*// 3- Network with cache fallback
+    // 3- Network with cache fallback
     //const respuesta = fetch( e.request ).then( res => {
     //    if( !res ) return caches.match( e.request );
     //
@@ -126,7 +126,7 @@ self.addEventListener('fetch', e => {
     //    return caches.match( e.request );
     //});
     //
-    //e.respondWith(respuesta);*/
+    //e.respondWith(respuesta);
 
     // 4- Cache with networks update
     //if(e.request.url.includes('bootstrap')) {
@@ -169,4 +169,77 @@ self.addEventListener('fetch', e => {
     });
 
     e.respondWith(respuesta);
+});*/
+
+const CACHE_STATIC_NAME = 'static-v1';
+const CACHE_DYNAMIC_NAME = 'dynamic-v1';
+const CACHE_INMUTABLE_NAME = 'inmutable-v1';
+const CACHE_DYNAMIC_LIMIT = 50;
+
+function limpiarCache(cacheName, numeroItems) {
+
+    caches.open(cacheName)
+        .then(cache => {
+
+            return cache.keys()
+                .then(keys => {
+
+                    if (keys.length > numeroItems) {
+                        cache.delete(keys[0])
+                            .then(limpiarCache(cacheName, numeroItems));
+                    }
+                });
+
+        });
+}
+
+self.addEventListener('install', e => {
+
+    const cacheProm = caches.open(CACHE_STATIC_NAME)
+        .then(cache => {
+
+            return cache.addAll([
+                '/',
+                '/index.html',
+                '/css/style.css',
+                '/img/main.jpg',
+                '/js/app.js',
+                '/img/no-img.jpg',
+                '/pages/offline.html'
+            ]);
+
+        });
+
+    const cacheInmutable = caches.open(CACHE_INMUTABLE_NAME)
+        .then(cache => cache.add('https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css'));
+
+    e.waitUntil(Promise.all([cacheProm, cacheInmutable]));
+
+});
+
+self.addEventListener('fetch', e => {
+
+    //Network Fallback
+    const respuesta = caches.match(e.request)
+        .then(res => {
+
+            if (res) return res;
+
+            // no esta el archivo
+
+            return fetch(e.request).then(newResp => {
+
+                caches.open(CACHE_DYNAMIC_NAME)
+                    .then(cache => {
+                        cache.put(e.request, newResp);
+                        limpiarCache(CACHE_DYNAMIC_NAME, 50);
+                    });
+
+                return newResp.clone();
+            });
+
+        });
+
+    e.respondWith(respuesta);
+
 });
