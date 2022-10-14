@@ -80,14 +80,11 @@ self.addEventListener('install', e => {
     e.waitUntil(Promise.all([cacheProm, cacheInmutable]));
 
 
-/*self.addEventListener('fetch', e =>{
-
-   /* //1- Cache Only
-    e.respondWith( caches.match( e.request ) );
-})*/ 
-
 self.addEventListener('fetch', e => {
 
+    /*//1- Cache Only
+        //e.respondWith( caches.match( e.request ) );
+    //})*/ 
 
     /*// 2- Cache with Network Fallback
     //const respuesta = caches.match(e.request)
@@ -132,14 +129,43 @@ self.addEventListener('fetch', e => {
     //e.respondWith(respuesta);*/
 
     // 4- Cache with networks update
-    if(e.request.url.includes('bootstrap')) {
-        return e.respondWith(caches.match(e.request));
-    }
+    //if(e.request.url.includes('bootstrap')) {
+    //    return e.respondWith(caches.match(e.request));
+    //}
+    //
+    //const respuesta = caches.open( CACHE_STATIC_NAME ).then( cache => {
+    //    fetch(e.request).then( newRes => cache.put(e.request,newRes));
+    //
+    //    return cache.match(e.request);
+    //});
+    //
+    //e.respondWith(respuesta);
 
-    const respuesta = caches.open( CACHE_STATIC_NAME ).then( cache => {
-        fetch(e.request).then( newRes => cache.put(e.request,newRes));
+    // 5- Cache & Network Race
+    const respuesta = new Promise( (resolve, reject) => {
 
-        return cache.match(e.request);
+        let rechazada = false;
+
+        const falloUnaVez = () => {
+            if(rechazada) {
+                if(/\.(png|jpg)$/i.test(e.request.url)) {
+                    resolve(caches.match('/img/no-image.jpg'));
+                } else {
+                    reject('No se encontro respuesta');
+                }
+            } else {
+                rechazada = true;
+            }
+        };
+
+        fetch(e.request).then( res => {
+            res.ok ? resolve(res) : falloUnaVez();
+        }).catch(falloUnaVez);
+
+        caches.match(e.request).then( res => {
+            res ? resolve(res) : falloUnaVez();
+        }).catch(falloUnaVez);
+
     });
 
     e.respondWith(respuesta);
